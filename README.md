@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1>Matcher: Segment Anything with One Shot Using All-Purpose Feature Matching </h1>
+<h1>Unified Open-World Segmentation with Multi-Modal Prompts </h1>
 
 [Yang Liu](https://scholar.google.com/citations?user=9JcQ2hwAAAAJ&hl=en)<sup>1*</sup>, &nbsp; 
 Yufei Yin<sup>2*</sup>, &nbsp; 
@@ -34,3 +34,8 @@ COSINE exploits foundation models to extract representations for an input image 
 In this way, COSINE overcomes architectural discrepancies, divergent learning objectives, and distinct representation learning strategies of previous pipelines for open-vocabulary segmentation and in-context segmentation.
 Comprehensive experiments demonstrate that COSINE has significant performance improvements in both open-vocabulary and in-context segmentation tasks. 
 Our exploratory analyses highlight that the synergistic collaboration between using visual and textual prompts leads to significantly improved generalization over single-modality approaches. 
+
+## 🎫 License
+
+For academic use, this project is licensed under [the 2-clause BSD License](https://opensource.org/license/bsd-2-clause). 
+For commercial use, please contact [Chunhua Shen](mailto:chhshen@gmail.com).
