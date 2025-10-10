@@ -14,8 +14,8 @@ Shiyu Li<sup>4</sup>, &nbsp;
 [Chunhua Shen](https://cshen.github.io/)<sup>1</sup>
 
 <sup>1</sup>[Zhejiang University](https://www.zju.edu.cn/english/), &nbsp;
-<sup>2</sup>Hangzhou Dianzi University
-<sup>3</sup>Zhejiang University of Technology
+<sup>2</sup>Hangzhou Dianzi University, &nbsp;
+<sup>3</sup>Zhejiang University of Technology, &nbsp;
 <sup>4</sup>Apple
 
 
