@@ -1,0 +1,5 @@
+_BASE_: ../../Base-COSINE.yaml
+DATASETS:
+  TRAIN: ('coco_trainval_novel_5shot_seed1',)
+  TEST: ('coco_test_novel',)
+OUTPUT_DIR: "outputs/fsod/cosine/coco/5shot/seed1"

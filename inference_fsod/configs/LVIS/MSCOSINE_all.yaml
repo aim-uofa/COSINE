@@ -1,0 +1,8 @@
+_BASE_: ../Base-MSCOSINE.yaml
+MODEL:
+  ROI_HEADS:
+    NUM_CLASSES: 1230
+DATASETS:
+  TRAIN: ("lvis_v0.5_train_shots",)
+  TEST: ("lvis_v0.5_val",)
+OUTPUT_DIR: "outputs/fsod/mscosine/lvis_all"

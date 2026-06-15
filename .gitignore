@@ -1,0 +1,61 @@
+# System and editor files
+.DS_Store
+.nfs*
+*~
+*.swn
+*.swo
+*.swp
+.idea/
+.vscode/
+_darcs/
+
+# Python build/cache files
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.dll
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+_ext/
+build/
+dist/
+wheels/
+
+# Notebook checkpoints
+**/.ipynb_checkpoints/
+*.local.md
+
+# Codex/local automation state. Public repro scripts live under scripts/repro/.
+.codex/
+
+# Internal ablation launchers keep historical experiment names and are not part
+# of the first public release surface.
+/scripts/ablation/
+/inference_fsod/scripts/*ablation*.sh
+/scripts/train_cosine_lab*.sh
+
+# Local datasets, checkpoints, and generated outputs.
+# Keep these entries explicit so source packages such as dinov2/models stay tracked.
+/datasets/
+/models/
+/outputs/
+/wandb/
+/logs/
+/inference_fsod/datasets/
+/inference_fsod/models/
+/inference_fsod/outputs/
+
+# Large generated artifacts and model formats
+*.ckpt
+*.pth
+*.pt
+*.pkl
+*.npy
+*.npz
+*.ts
+*.onnx
+*.safetensors
+model_ts*.txt

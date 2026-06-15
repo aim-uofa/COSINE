@@ -1,0 +1,11 @@
+_BASE_: ../../Base-COSINE.yaml
+MODEL:
+  META_ARCHITECTURE: "COSINEABLATION"
+  COSINE:
+    img_feats_merging_type: "simple_merging"
+  ROI_HEADS:
+    NUM_CLASSES: 1230
+DATASETS:
+  TRAIN: ("lvis_v0.5_train_shots",)
+  TEST: ("lvis_v0.5_val",)
+OUTPUT_DIR: "outputs/fsod/cosine_ablation/lvis_all"
