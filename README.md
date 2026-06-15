@@ -18,6 +18,12 @@ Shiyu Li<sup>4</sup>,
 <sup>3</sup>Zhejiang University of Technology,
 <sup>4</sup>Apple
 
+<p>
+  <a href="https://www.modelscope.cn/models/zzzmmz/COSINE-Public-Weights">
+    <img alt="ModelScope Weights" src="https://img.shields.io/badge/ModelScope-Weights-1677ff">
+  </a>
+</p>
+
 <img width="800" alt="COSINE teaser" src="figs/teaser.png">
 
 </div>
@@ -73,7 +79,7 @@ Download the DINOv2 ViT-L pretrained weight and place it at:
 models/dinov2_vitl14_pretrain.pth
 ```
 
-COSINE checkpoints are expected under `models/cosine/` using the public checkpoint directory names. See [MODEL_ZOO.md](MODEL_ZOO.md) for the checkpoint map.
+COSINE checkpoints are hosted on [ModelScope](https://www.modelscope.cn/models/zzzmmz/COSINE-Public-Weights) and are expected under `models/cosine/` using the public checkpoint directory names. See [MODEL_ZOO.md](MODEL_ZOO.md) for the checkpoint map.
 
 With ModelScope access, download the release checkpoint files and place the `weights/` contents under `models/cosine/`:
 
