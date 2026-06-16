@@ -23,18 +23,20 @@ lr=1e-4
 bs=2
 uf=1
 gpus=8
-ep=10
+ep=50
+fd=1 # 1
+md=6 # 6
 
 dino_size=vit_large
 dino_path=models/dinov2_vitl14_pretrain.pth
-sam_size=vit_l
-sam_path=models/sam_vit_l_0b3195.pth
-clip_path=models/CLIP-convnext_large_d_320.laion2B-s29B-b131K-ft-soup/open_clip_pytorch_model.bin
+sam_size=vit_b
+sam_path=models/sam_vit_b_01ec64.pth
+clip_path=models/CLIP-convnext_large_d_320.laion2B-s29B-b121K-ft-soup/open_clip_pytorch_model.bin
 
-SUB_DIR=cosine_lr${lr}_ep${ep}
+SUB_DIR=mscosine_fd${fd}_md${md}_lr${lr}_ep${ep}
 echo ${SUB_DIR}
 
-python tools/train.py \
+python tools/train_ms.py \
     --num-gpus ${gpus} \
     --num-machines ${WORLD_SIZE} \
     --machine-rank ${RANK} \
@@ -47,20 +49,18 @@ python tools/train.py \
     --sam-size ${sam_size} \
     --sam-weights ${sam_path} \
     --clip-weights ${clip_path} \
-    --save_ckpt_freq 2 \
-    --dataset "refer_seg" \
-    --sample_rate "1" \
-    --pano_seg_data "coco" \
-    --pano_sample_rate "1" \
-    --ins_seg_data "paco||o365" \
-    --ins_sample_rate "2,3" \
+    --save_ckpt_freq 1 \
+    --dataset "ins_seg" \
+    --ins_seg_data "coco||paco||o365" \
+    --ins_sample_rate "2,2,3" \
     --refer_seg_data "refclef||refcoco||refcoco+||refcocog" \
-    --refer_sample_rate "1,1,1,1"\
+    --refer_sample_rate "1,2,2,2"\
     --multimodal_choice "visual||text||visual_text" \
-    --multimodal_rate "1,1,1" \
+    --multimodal_weight "1,1,1" \
     --use_all_classes \
     --transformer_num_queries 200 \
-    --transformer_fusion_layer_depth 1 \
+    --transformer_fusion_layer_depth ${fd} \
+    --transformer_depth ${md} \
     --crop_ratio 0.5 \
     --load_dir "" \
     --output_dir ./outputs/train/${SUB_DIR} \

@@ -18,7 +18,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import math
 
-from cosine.data.dataset import build_dataset
+from cosine.data.dataset_new import build_dataset
 from cosine.model.model import build_model
 from cosine.utils.utils import Print
 from cosine.utils import utils
@@ -33,7 +33,7 @@ def get_args():
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument("--steps_per_epoch", default=1000, type=int)
-    parser.add_argument('--update_freq', default=4, type=int)
+    parser.add_argument('--update_freq', default=1, type=int)
     parser.add_argument('--save_ckpt_freq', default=1, type=int)
 
     parser.add_argument('--save_ckpt', action='store_true')
@@ -66,16 +66,14 @@ def get_args():
         the end of training improves performance for ViTs.""")
 
     parser.add_argument('--data_root', default="datasets", type=str)
-    parser.add_argument('--dataset', default="pano_seg||ins_seg||refer_seg", type=str)
-    parser.add_argument('--sample_rate', default="2,5,3", type=str)
-    parser.add_argument('--pano_seg_data', default="coco", type=str)
-    parser.add_argument('--pano_sample_rate', default="1", type=str)
-    parser.add_argument('--ins_seg_data', default="paco||o365", type=str)
-    parser.add_argument('--ins_sample_rate', default="2,3", type=str)
+    parser.add_argument('--dataset', default="ins_seg||refer_seg", type=str)
+    # parser.add_argument('--sample_rate', default="7,3", type=str)
+    parser.add_argument('--ins_seg_data', default="coco||paco||o365", type=str)
+    parser.add_argument('--ins_sample_rate', default="2,2,3", type=str)
     parser.add_argument('--refer_seg_data', default="refclef||refcoco||refcoco+||refcocog", type=str)
     parser.add_argument('--refer_sample_rate', default="1,1,1,1", type=str)
-    parser.add_argument('--multimodal_choice', default="visual||text||visual_text", type=str) # 'visual', 'text', 'visual_text'
-    parser.add_argument('--multimodal_rate', default="1,1,1", type=str)
+    parser.add_argument('--multimodal_choice', default="visual||text||visual_text||refer", type=str) # 'visual', 'text', 'visual_text'
+    parser.add_argument('--multimodal_weight', default="1,1,1,1", type=str)
     parser.add_argument('--use_all_classes', action='store_true')
     # parser.set_defaults(use_all_classes=True)
 
@@ -170,6 +168,20 @@ def get_args():
 
     return parser.parse_args(), ds_init
 
+def trivial_batch_collator(batch):
+    """
+    A batch collator that does nothing.
+    """
+
+    new_batch = {}
+    for b in batch:
+        for k in b:
+            if k not in new_batch:
+                new_batch[k] = []
+            new_batch[k].append(b[k])
+
+    return new_batch
+
 def main(args, ds_init):
 
     args.gpu = comm.get_local_rank()
@@ -210,14 +222,13 @@ def main(args, ds_init):
     else:
         log_writer = None
 
-
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train, sampler=sampler_train,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,
         drop_last=True,
-        collate_fn=utils.trivial_batch_collator
+        collate_fn=trivial_batch_collator
     )
 
     model = build_model(args)
@@ -337,6 +348,7 @@ def main(args, ds_init):
             update_freq=args.update_freq,
             args=args,
         )
+        torch.cuda.empty_cache()
 
         if args.output_dir and args.save_ckpt:
             if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:
@@ -382,6 +394,9 @@ def train_one_epoch(
     metric_logger.add_meter('min_lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 10
+    multimodal_choice = [x for x in args.multimodal_choice.split("||")]
+    multimodal_weight = [float(x) for x in args.multimodal_weight.split(",")]
+    assert len(multimodal_choice) == len(multimodal_weight)
 
     if loss_scaler is None:
         model.zero_grad()
@@ -389,45 +404,57 @@ def train_one_epoch(
     else:
         optimizer.zero_grad()
 
-    for data_iter_step, inputs in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
+    for data_iter_step, multi_inputs in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
         step = data_iter_step // update_freq
         if step >= num_training_steps_per_epoch:
             continue
 
-        if loss_scaler is None:
-            if args.precision == "fp16":
-                for input in inputs:
-                    input['target']['image'] = input['target']['image'].half()
-                    input['target']['sam_image'] = input['target']['sam_image'].half()
-                    input['target']['clip_image'] = input['target']['clip_image'].half()
-                    if input['visual_prompt'] is not None:
-                        input['visual_prompt']['image'] = input['visual_prompt']['image'].half()
-                        input['visual_prompt']['sam_image'] = input['visual_prompt']['sam_image'].half()
-                        input['visual_prompt']['clip_image'] = input['visual_prompt']['clip_image'].half()
-            elif args.precision == "bf16":
-                for input in inputs:
-                    input['target']['image'] = input['target']['image'].bfloat16()
-                    input['target']['sam_image'] = input['target']['sam_image'].bfloat16()
-                    input['target']['clip_image'] = input['target']['clip_image'].bfloat16()
-                    if input['visual_prompt'] is not None:
-                        input['visual_prompt']['image'] = input['visual_prompt']['image'].bfloat16()
-                        input['visual_prompt']['sam_image'] = input['visual_prompt']['sam_image'].bfloat16()
-                        input['visual_prompt']['clip_image'] = input['visual_prompt']['clip_image'].bfloat16()
+        loss_dict = {}
+        for prompt, prompt_weight in zip(multimodal_choice, multimodal_weight):
+            inputs = multi_inputs[prompt]
+
+            if loss_scaler is None:
+                if args.precision == "fp16":
+                    for input in inputs:
+                        input['target']['image'] = input['target']['image'].half()
+                        input['target']['sam_image'] = input['target']['sam_image'].half()
+                        input['target']['clip_image'] = input['target']['clip_image'].half()
+                        if input['visual_prompt'] is not None:
+                            input['visual_prompt']['image'] = input['visual_prompt']['image'].half()
+                            input['visual_prompt']['sam_image'] = input['visual_prompt']['sam_image'].half()
+                            input['visual_prompt']['clip_image'] = input['visual_prompt']['clip_image'].half()
+                elif args.precision == "bf16":
+                    for input in inputs:
+                        input['target']['image'] = input['target']['image'].bfloat16()
+                        input['target']['sam_image'] = input['target']['sam_image'].bfloat16()
+                        input['target']['clip_image'] = input['target']['clip_image'].bfloat16()
+                        if input['visual_prompt'] is not None:
+                            input['visual_prompt']['image'] = input['visual_prompt']['image'].bfloat16()
+                            input['visual_prompt']['sam_image'] = input['visual_prompt']['sam_image'].bfloat16()
+                            input['visual_prompt']['clip_image'] = input['visual_prompt']['clip_image'].bfloat16()
+                else:
+                    for input in inputs:
+                        input['target']['image'] = input['target']['image'].float()
+                        input['target']['sam_image'] = input['target']['sam_image'].float()
+                        input['target']['clip_image'] = input['target']['clip_image'].float()
+                        if input['visual_prompt'] is not None:
+                            input['visual_prompt']['image'] = input['visual_prompt']['image'].float()
+                            input['visual_prompt']['sam_image'] = input['visual_prompt']['sam_image'].float()
+                            input['visual_prompt']['clip_image'] = input['visual_prompt']['clip_image'].float()
             else:
-                for input in inputs:
-                    input['target']['image'] = input['target']['image'].float()
-                    input['target']['sam_image'] = input['target']['sam_image'].float()
-                    input['target']['clip_image'] = input['target']['clip_image'].float()
-                    if input['visual_prompt'] is not None:
-                        input['visual_prompt']['image'] = input['visual_prompt']['image'].float()
-                        input['visual_prompt']['sam_image'] = input['visual_prompt']['sam_image'].float()
-                        input['visual_prompt']['clip_image'] = input['visual_prompt']['clip_image'].float()
-        else:
-            raise NotImplementedError
+                raise NotImplementedError
 
-        loss_dict = model(inputs)
+            loss_dict_ = model(inputs)
+            for k in loss_dict_:
+                if k not in loss_dict:
+                    loss_dict[k] = loss_dict_[k] * prompt_weight
+                else:
+                    loss_dict[k] = loss_dict[k] + loss_dict_[k] * prompt_weight
+
+        for k in loss_dict:
+            loss_dict[k] = loss_dict[k] / len(multimodal_choice)
+
         losses = sum(loss_dict.values())
-
         loss_value = losses.item()
 
         if not math.isfinite(loss_value):
@@ -475,7 +502,7 @@ def train_one_epoch(
 
             log_writer.set_step()
 
-    # gather the stats from all processes
+        # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     Print(f"Averaged stats: {metric_logger}")
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
