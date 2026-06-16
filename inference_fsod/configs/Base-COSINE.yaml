@@ -1,0 +1,41 @@
+MODEL:
+  META_ARCHITECTURE: "COSINE"
+  DINO:
+    SIZE: "vit_large"
+    WEIGHTS: "../models/dinov2_vitl14_pretrain.pth"
+    OUT_CHANS: 256
+  CLIP:
+    WEIGHTS: "../models/CLIP-convnext_large_d_320.laion2B-s29B-b131K-ft-soup/open_clip_pytorch_model.bin"
+  WEIGHTS: "../models/cosine/cosine_fd1_md6_lr1e-4_ep50/pytorch_model.bin"
+  COSINE:
+    use_visual: True
+    use_text: False
+    Transformer:
+      depth: 6
+      feat_chans: 256
+      nheads: 8
+      mlp_dim: 2048
+      mask_dim: 256
+      fusion_layer_depth: 1
+      num_queries: 200
+      pre_norm: True
+    preprocess: True
+    sem_seg_postprocess_before_inference: True
+    test_topk_per_image: 100
+    score_threshold: 0.
+    use_id_query: False
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+DATASETS:
+  TRAIN: ('coco_trainval_novel_1shot',)
+  TEST: ('coco_test_novel',)
+SOLVER:
+  IMS_PER_BATCH: 4
+INPUT:
+
+  MIN_SIZE_TEST: 896
+  MAX_SIZE_TEST: 896
+  IMAGE_SIZE: 896
+  SAM_IMAGE_SIZE: 1024
+  CLIP_IMAGE_SIZE: 1024
+OUTPUT_DIR: "outputs/fsod/cosine/coco/1shot/seed0"

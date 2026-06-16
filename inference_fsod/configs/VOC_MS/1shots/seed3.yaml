@@ -1,0 +1,5 @@
+_BASE_: ../../Base-MSCOSINE.yaml
+DATASETS:
+  TRAIN: ('coco_trainval_novel_1shot_seed3',)
+  TEST: ('VOCSegm_val_novel',)
+OUTPUT_DIR: "outputs/fsod/voc/1shot/seed3"
